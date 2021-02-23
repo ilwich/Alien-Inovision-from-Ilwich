@@ -14,3 +14,5 @@ class Settings():
         self.bullet_height = 15
         self.bullet_color = (60, 60, 60)
         self.bullets_allowed = 5
+        self.rocket_speed = 2
+        self.rocket_number = 5

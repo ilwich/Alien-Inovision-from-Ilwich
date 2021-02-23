@@ -16,6 +16,7 @@ class Ship():
         self.moving_left = False
         self.moving_up = False
         self.moving_down = False
+        self.rockets = self.settings.rocket_number
         self.x = float(self.rect.x)
         self.y = float(self.rect.y)
 

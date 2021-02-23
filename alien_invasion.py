@@ -2,7 +2,7 @@ import sys
 import pygame
 from ship import Ship
 from bullet import Bullet
-
+from rockets import Rocket
 from settings import Settings
 
 
@@ -23,6 +23,7 @@ class AlienInvasion:
         self.bg_color = self.settings.bg_color
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
+        self.rockets = pygame.sprite.Group()
 
     def run_game(self):
         # """Запуск основного цикла игры."""
@@ -30,7 +31,9 @@ class AlienInvasion:
             self._check_events()
             self.ship.update()
             self.bullets.update()
+            self.rockets.update()
             self._update_bullets()
+            self._update_rockets()
             self._update_screen()
 
 
@@ -50,6 +53,8 @@ class AlienInvasion:
         self.ship.blitme()
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
+        for rocket in self.rockets.sprites():
+            rocket.draw_rocket()
         # Отображение последнего прорисованного экрана.
         pygame.display.flip()
 
@@ -71,6 +76,8 @@ class AlienInvasion:
             sys.exit()
         elif event.key == pygame.K_SPACE:
             self._fire_bullet()
+        elif event.key == pygame.K_LCTRL:
+            self._fire_rockets()
 
 
     def _check_keyup_events(self, event):
@@ -97,6 +104,21 @@ class AlienInvasion:
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
+
+    def _fire_rockets(self):
+        #"""Создание новой ракеты и включение её в группу rockets."""
+        if len(self.rockets) < self.settings.bullets_allowed and self.ship.rockets > 0:
+            new_rocket = Rocket(self)
+            self.ship.rockets -= 1
+            self.rockets.add(new_rocket)
+
+    def _update_rockets(self):
+        #"""Обновляет позиции снарядов и уничтожает стары ракеты."""
+        #Обновление позиции ракеты.
+        #Удаление ракет улетевших за экран
+        for rocket in self.rockets.copy():
+            if rocket.rect.bottom <= 0:
+                self.rockets.remove(rocket)
 
 if __name__ == '__main__':
     # Создание экземпляра и запуск игры.
