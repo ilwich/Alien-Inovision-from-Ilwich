@@ -11,7 +11,7 @@ class Ship():
         self.image = pygame.image.load('images/ship.bmp')
         self.rect = self.image.get_rect()
         # Каждый новый корабль появляется у нижнего края экрана.
-        self.rect.center = self.screen_rect.center
+        self.rect.midbottom = self.screen_rect.midbottom
         self.moving_right = False
         self.moving_left = False
         self.moving_up = False
