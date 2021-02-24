@@ -1,8 +1,10 @@
 import sys
+from random import randint
 import pygame
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
+from star import Star
 from rockets import Rocket
 from settings import Settings
 
@@ -26,6 +28,8 @@ class AlienInvasion:
         self.bullets = pygame.sprite.Group()
         self.rockets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
+        self.stars = pygame.sprite.Group()
+        self._create_university()
         self._create_fleet()
 
     def run_game(self):
@@ -80,6 +84,32 @@ class AlienInvasion:
         alien.rect.x = alien.x
         alien.rect.y = alien.y
         self.aliens.add(alien)
+
+    def _create_university(self):
+        star = Star(self)
+        star_width, star_height = star.rect.size
+        available_space_x = self.settings.screen_width - (2 * star_width)
+        number_stars_x = available_space_x // (3 * star_width)
+        """Определяет количество рядов, помещающихся на экране."""
+        available_space_y = (self.settings.screen_height - (2 * star_height))
+        number_rows = available_space_y // (3 * star_height)
+        # Создание вселенной.
+        for row_number in range(number_rows):
+            # Создание первого ряда звезд.
+            for star_number in range(number_stars_x):
+                # Создание звезды и размещение её в ряду.
+                self._create_star(star_number, row_number)
+
+
+    def _create_star(self, star_number, row_number):
+        #"""Создание звезды и размещение её в ряду."""
+        star = Star(self)
+        star_width, star_height = star.rect.size
+        star.x = randint(-star_width, star_width) + 5 * star_width * star_number
+        star.y = randint(-star_height, star_height) + 5 * star_height * row_number
+        star.rect.x = star.x
+        star.rect.y = star.y
+        self.aliens.add(star)
 
     def _update_screen(self):
         # При каждом проходе цикла перерисовывается экран.
