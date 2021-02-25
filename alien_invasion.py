@@ -1,4 +1,6 @@
 import sys
+from time import sleep
+
 from random import randint
 import pygame
 from ship import Ship
@@ -7,6 +9,7 @@ from alien import Alien
 from star import Star
 from rockets import Rocket
 from settings import Settings
+from game_stats import GameStats
 
 
 class AlienInvasion:
@@ -19,9 +22,10 @@ class AlienInvasion:
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.settings.screen_width = self.screen.get_rect().width
         self.settings.screen_height = self.screen.get_rect().height
-
         self.screen = pygame.display.set_mode((self.settings.screen_width, self.settings.screen_height))
         pygame.display.set_caption("Alien Invasion")
+        # Создание экземпляра для хранения игровой статистики.
+        self.stats = GameStats(self)
         # Назначение цвета фона.
         self.bg_color = self.settings.bg_color
         self.ship = Ship(self)
@@ -36,13 +40,14 @@ class AlienInvasion:
         # """Запуск основного цикла игры."""
         while True:
             self._check_events()
-            self.ship.update()
-            self.bullets.update()
-            self.rockets.update()
-            self._update_bullets()
-            self._update_rockets()
-            self._update_aliens()
-            self._update_university()
+            if self.stats.game_active:
+                self.ship.update()
+                self.bullets.update()
+                self.rockets.update()
+                self._update_bullets()
+                self._update_rockets()
+                self._update_aliens()
+                self._update_university()
             self._update_screen()
 
 
@@ -234,6 +239,38 @@ class AlienInvasion:
         """Обновляет позиции всех пришельцев во флоте."""
         self._check_fleet_edges()
         self.aliens.update()
+        # Проверка коллизий "пришелец — корабль".
+        if pygame.sprite.spritecollideany(self.ship, self.aliens):
+            self._ship_hit()
+        # Проверить, добрались ли пришельцы до нижнего края экрана.
+        self._check_aliens_bottom()
+
+    def _check_aliens_bottom(self):
+        """Проверяет, добрались ли пришельцы до нижнего края экрана."""
+        screen_rect = self.screen.get_rect()
+        for alien in self.aliens.sprites():
+            if alien.rect.bottom >= screen_rect.bottom:
+                # Происходит то же, что при столкновении с кораблем.
+                self._ship_hit()
+                break
+
+    def _ship_hit(self):
+        """Обрабатывает столкновение корабля с пришельцем."""
+        # Уменьшение ships_left.
+        if self.stats.ships_left > 0:
+            self.stats.ships_left -= 1
+            self.ship.rockets = self.settings.rocket_number
+            # Очистка списков пришельцев и снарядов.
+            self.aliens.empty()
+            self.bullets.empty()
+            self.rockets.empty()
+            # Создание нового флота и размещение корабля в центре.
+            self._create_fleet()
+            self.ship.center_ship()
+            # Пауза.
+            sleep(1)
+        else:
+            self.stats.game_active = False
 
     def _update_university(self):
         """Обновляет позиции всех звезд на экране."""
