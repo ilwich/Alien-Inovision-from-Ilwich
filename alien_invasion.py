@@ -41,7 +41,8 @@ class AlienInvasion:
             self.rockets.update()
             self._update_bullets()
             self._update_rockets()
-
+            self._update_aliens()
+            self._update_university()
             self._update_screen()
 
 
@@ -85,14 +86,27 @@ class AlienInvasion:
         alien.rect.y = alien.y
         self.aliens.add(alien)
 
+    def _check_fleet_edges(self):
+        """Реагирует на достижение пришельцем края экрана."""
+        for alien in self.aliens.sprites():
+            if alien.check_edges():
+                self._change_fleet_direction()
+                break
+
+    def _change_fleet_direction(self):
+        """Опускает весь флот и меняет направление флота."""
+        for alien in self.aliens.sprites():
+            alien.rect.y += self.settings.fleet_drop_speed
+        self.settings.fleet_direction *= -1
+
     def _create_university(self):
         star = Star(self)
         star_width, star_height = star.rect.size
-        available_space_x = self.settings.screen_width - (2 * star_width)
-        number_stars_x = available_space_x // (3 * star_width)
+        available_space_x = self.settings.screen_width
+        number_stars_x = available_space_x // (6 * star_width)
         """Определяет количество рядов, помещающихся на экране."""
-        available_space_y = (self.settings.screen_height - (2 * star_height))
-        number_rows = available_space_y // (3 * star_height)
+        available_space_y = self.settings.screen_height - star_height
+        number_rows = available_space_y // (6 * star_height)
         # Создание вселенной.
         for row_number in range(number_rows):
             # Создание первого ряда звезд.
@@ -105,15 +119,22 @@ class AlienInvasion:
         #"""Создание звезды и размещение её в ряду."""
         star = Star(self)
         star_width, star_height = star.rect.size
-        star.x = randint(-star_width, star_width) + 5 * star_width * star_number
-        star.y = randint(-star_height, star_height) + 5 * star_height * row_number
+        star.x = randint(star_width, star_width * 6) + 6 * star_width * star_number
+        star.y = randint(-star_height*6, 0) + 6 * star_height * row_number
         star.rect.x = star.x
         star.rect.y = star.y
-        self.aliens.add(star)
+        self.stars.add(star)
+
+    def _check_star_edges(self):
+        """Реагирует на достижение звезды края экрана."""
+        for star in self.stars.sprites():
+            if star.check_edges():
+                star.y = star.rect.height+randint(-star.rect.height, star.rect.height*3)
 
     def _update_screen(self):
         # При каждом проходе цикла перерисовывается экран.
         self.screen.fill(self.bg_color)
+        self.stars.draw(self.screen)
         self.ship.blitme()
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
@@ -169,6 +190,19 @@ class AlienInvasion:
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
+        self._check_bullet_alien_collisions()
+
+
+    def _check_bullet_alien_collisions(self):
+        """Обработка коллизий снарядов с пришельцами."""
+        # Проверка попаданий в пришельцев.
+        # При обнаружении попадания удалить снаряд и пришельца.
+        collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        # Удаление снарядов и пришельцев, участвующих в коллизиях.
+        if not self.aliens:
+            self.bullets.empty()
+            self._create_fleet()
+
 
     def _fire_rockets(self):
         #"""Создание новой ракеты и включение её в группу rockets."""
@@ -184,6 +218,27 @@ class AlienInvasion:
         for rocket in self.rockets.copy():
             if rocket.rect.bottom <= 0:
                 self.rockets.remove(rocket)
+        self._check_rockets_alien_collision()
+
+
+    def _check_rockets_alien_collision(self):
+        # Проверка попаданий в пришельцев.
+        # При обнаружении попадания удалить пришельца.
+        collisions = pygame.sprite.groupcollide(self.rockets, self.aliens, False, True)
+        if not self.aliens:
+        # Уничтожение существующих снарядов и создание нового флота.
+            self.bullets.empty()
+            self._create_fleet()
+
+    def _update_aliens(self):
+        """Обновляет позиции всех пришельцев во флоте."""
+        self._check_fleet_edges()
+        self.aliens.update()
+
+    def _update_university(self):
+        """Обновляет позиции всех звезд на экране."""
+        self._check_star_edges()
+        self.stars.update()
 
 if __name__ == '__main__':
     # Создание экземпляра и запуск игры.
