@@ -232,6 +232,7 @@ class AlienInvasion:
             # Переместить корабль влево.
             self.ship.moving_down = True
         if event.key == pygame.K_q:
+            self.stats.high_score_save()
             sys.exit()
         if event.key == pygame.K_p:
             if not self.stats.game_active:
@@ -273,12 +274,14 @@ class AlienInvasion:
         """Обработка коллизий снарядов с пришельцами."""
         # Проверка попаданий в пришельцев.
         # При обнаружении попадания удалить снаряд и пришельца.
-        collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, False)
         # Удаление снарядов и пришельцев, участвующих в коллизиях.
         count_collisions = 0
         if collisions:
             for element in collisions.values():
                 count_collisions += len(element)
+                for el in element:
+                    el.is_explois = 1
             self.stats.score += self.settings.alien_points * count_collisions
             self.sb.prep_score()
             self.sb.check_high_score()
@@ -311,11 +314,13 @@ class AlienInvasion:
     def _check_rockets_alien_collision(self):
         # Проверка попаданий в пришельцев.
         # При обнаружении попадания удалить пришельца.
-        collisions = pygame.sprite.groupcollide(self.rockets, self.aliens, False, True)
+        collisions = pygame.sprite.groupcollide(self.rockets, self.aliens, False, False)
         count_collisions = 0
         if collisions:
             for element in collisions.values():
                 count_collisions += len(element)
+                for el in element:
+                    el.is_explois = 1
             self.stats.score += self.settings.alien_points * count_collisions
             self.sb.prep_score()
             self.sb.check_high_score()
@@ -332,11 +337,18 @@ class AlienInvasion:
         """Обновляет позиции всех пришельцев во флоте."""
         self._check_fleet_edges()
         self.aliens.update()
+        self._check_aliens_explois()
         # Проверка коллизий "пришелец — корабль".
         if pygame.sprite.spritecollideany(self.ship, self.aliens):
             self._ship_hit()
         # Проверить, добрались ли пришельцы до нижнего края экрана.
         self._check_aliens_bottom()
+
+    def _check_aliens_explois(self):
+        for alien in self.aliens.sprites():
+            if alien.is_explois >=30:
+                alien.kill()
+
 
     def _check_aliens_bottom(self):
         """Проверяет, добрались ли пришельцы до нижнего края экрана."""

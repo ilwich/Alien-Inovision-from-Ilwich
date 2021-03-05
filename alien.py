@@ -11,6 +11,8 @@ class Alien(Sprite):
         self.settings = ai_game.settings
         # Загрузка изображения пришельца и назначение атрибута rect.
         self.image = pygame.image.load('images/alien.bmp')
+        self.image_explois = pygame.image.load('images/explois.bmp')
+        self.is_explois = 0
         self.rect = self.image.get_rect()
         # Каждый новый пришелец появляется в левом верхнем углу экрана.
         self.rect.x = self.rect.width
@@ -28,3 +30,10 @@ class Alien(Sprite):
         #"""Перемещает пришельца вправо."""
         self.x += (self.settings.alien_speed * self.settings.fleet_direction)
         self.rect.x = self.x
+
+        if self.is_explois >= 1 :
+            self.image = self.image_explois
+            self.is_explois += 1
+
+
+

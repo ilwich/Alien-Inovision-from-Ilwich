@@ -10,7 +10,7 @@ class Settings():
         self.bg_color = (143, 85, 201)
         self.ship_limit = 5
         # Параметры снаряда
-        self.bullet_width = 300
+        self.bullet_width = 3
         self.bullet_height = 15
         self.bullet_color = (60, 60, 60)
         self.bullets_allowed = 5
@@ -23,6 +23,8 @@ class Settings():
         self.speedup_scale = 1.1
         # Темп роста стоимости пришельцев
         self.score_scale = 1.5
+        # Имя файла с рекордами
+        self.record_filename = 'records.dat'
         self.initialize_dynamic_settings()
 
     def initialize_dynamic_settings(self):
