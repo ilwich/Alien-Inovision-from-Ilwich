@@ -9,6 +9,7 @@ class Rocket(Sprite):
         super().__init__()
         self.screen = ai_game.screen
         self.settings = ai_game.settings
+        self.shoot_sound = pygame.mixer.Sound('sounds/Rocket_Shoot1.wav')
         # Загружает изображение ракеты и получает прямоугольник.
         self.image = pygame.image.load('images/rocket.bmp')
         self.rect = self.image.get_rect()

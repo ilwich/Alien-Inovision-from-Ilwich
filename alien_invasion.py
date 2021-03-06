@@ -258,6 +258,7 @@ class AlienInvasion:
         #"""Создание нового снаряда и включение его в группу bullets."""
         if len(self.bullets) < self.settings.bullets_allowed:
             new_bullet = Bullet(self)
+            new_bullet.shoot_sound.play()
             self.bullets.add(new_bullet)
 
     def _update_bullets(self):
@@ -299,6 +300,7 @@ class AlienInvasion:
         if len(self.rockets) < self.settings.bullets_allowed and self.ship.rockets > 0:
             new_rocket = Rocket(self)
             self.ship.rockets -= 1
+            new_rocket.shoot_sound.play()
             self.rockets.add(new_rocket)
 
     def _update_rockets(self):
@@ -347,6 +349,7 @@ class AlienInvasion:
     def _check_aliens_explois(self):
         for alien in self.aliens.sprites():
             if alien.is_explois >=30:
+                alien.explois_sound.play()
                 alien.kill()
 
 
@@ -364,7 +367,12 @@ class AlienInvasion:
         # Уменьшение ships_left.
         if self.stats.ships_left > 1:
             self.stats.ships_left -= 1
+            self.ship.destroy_sound.play()
             self.sb.prep_ships()
+            self.ship.is_destroy = 1
+            self.ship.blitme()
+            self._update_screen()
+            sleep(1)
             self.ship.rockets = self.settings.rocket_number
             # Очистка списков пришельцев и снарядов.
             self.aliens.empty()
@@ -372,9 +380,10 @@ class AlienInvasion:
             self.rockets.empty()
             # Создание нового флота и размещение корабля в центре.
             self._create_fleet()
+            self.ship.is_destroy = 0
             self.ship.center_ship()
             # Пауза.
-            sleep(0.5)
+
         else:
             self.stats.game_active = False
             pygame.mouse.set_visible(True)

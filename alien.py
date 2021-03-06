@@ -9,6 +9,7 @@ class Alien(Sprite):
         super().__init__()
         self.screen = ai_game.screen
         self.settings = ai_game.settings
+        self.explois_sound = pygame.mixer.Sound('sounds/Explosion3.wav')
         # Загрузка изображения пришельца и назначение атрибута rect.
         self.image = pygame.image.load('images/alien.bmp')
         self.image_explois = pygame.image.load('images/explois.bmp')
@@ -30,7 +31,6 @@ class Alien(Sprite):
         #"""Перемещает пришельца вправо."""
         self.x += (self.settings.alien_speed * self.settings.fleet_direction)
         self.rect.x = self.x
-
         if self.is_explois >= 1 :
             self.image = self.image_explois
             self.is_explois += 1
