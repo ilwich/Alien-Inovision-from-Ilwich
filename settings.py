@@ -13,7 +13,7 @@ class Settings():
         self.bullet_width = 3
         self.bullet_height = 15
         self.bullet_color = (60, 60, 60)
-        self.bullets_allowed = 5
+        self.bullets_allowed = 10
         self.rocket_number = 5
         self.fleet_drop_speed = 10
         # fleet_direction = 1 обозначает движение вправо; а -1 - влево.
@@ -25,6 +25,16 @@ class Settings():
         self.score_scale = 1.5
         # Имя файла с рекордами
         self.record_filename = 'records.dat'
+        # Параметры метеоритов
+        self.meteor_number_max = 5
+        # Сколько шагов на 100 пикселей
+        self.meteor_speed = 200
+        # Частота выстрела метеоритами
+        self.meteor_clock = 500
+        # Уровень повреждения от метеорита
+        self.meteor_damage = 12
+        # Уровень здоровья корабля
+        self.ship_health_max = 100
         self.initialize_dynamic_settings()
 
     def initialize_dynamic_settings(self):
@@ -36,7 +46,8 @@ class Settings():
         # fleet_direction = 1 обозначает движение вправо; а -1 - влево.
         self.fleet_direction = 1
         # Подсчет очков
-        self.alien_points = 50
+        self.alien_points = 100
+        self.meteor_timing = 0
 
     def increase_speed(self):
         """Увеличивает настройки скорости и стоимость пришельцев."""

@@ -2,6 +2,7 @@ import sys
 from time import sleep
 
 from random import randint
+from random import choice
 import pygame
 from ship import Ship
 from bullet import Bullet
@@ -12,6 +13,7 @@ from settings import Settings
 from game_stats import GameStats
 from button import Button
 from scoreboard import Scoreboard
+from meteor import Meteor
 
 
 class AlienInvasion:
@@ -33,8 +35,10 @@ class AlienInvasion:
         # Назначение цвета фона.
         self.bg_color = self.settings.bg_color
         self.ship = Ship(self)
+
         self.bullets = pygame.sprite.Group()
         self.rockets = pygame.sprite.Group()
+        self.meteors = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
         self.stars = pygame.sprite.Group()
         self._create_university()
@@ -59,7 +63,16 @@ class AlienInvasion:
                 self._update_rockets()
                 self._update_aliens()
                 self._update_university()
+                self._update_meteor()
+                self._update_meteor_timing()
             self._update_screen()
+
+
+    def _update_meteor_timing(self):
+        """Прибавление счётчика выстрелов метеоров"""
+        self.settings.meteor_timing += 1
+        if self.settings.meteor_timing >= self.settings.meteor_clock:
+            self._fire_meteor()
 
 
     def _check_events(self):
@@ -67,17 +80,20 @@ class AlienInvasion:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                mouse_button = pygame.mouse.get_pressed()
+                self._check_play_button(mouse_pos, mouse_button)
             elif event.type == pygame.KEYDOWN:
                 self._check_keydown_events(event)
             elif event.type == pygame.KEYUP:
                 self._check_keyup_events(event)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                self._check_play_button(mouse_pos)
 
-    def _check_play_button(self, mouse_pos):
+
+    def _check_play_button(self, mouse_pos, mouse_button):
         """Запускает новую игру при нажатии кнопки Play."""
         button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+        left_button, center_button, right_button = mouse_button
         if button_clicked and not self.stats.game_active:
             #инициализация скорости
             self.settings.initialize_dynamic_settings()
@@ -92,6 +108,10 @@ class AlienInvasion:
             if self.hard_buttom.rect.collidepoint(mouse_pos):
                 self.settings.speedup_scale = 1.4
                 self.ship.rect.y = self.hard_buttom.rect.y
+        if left_button and self.stats.game_active:
+            self._fire_bullet()
+        if right_button and self.stats.game_active:
+            self._fire_rockets()
 
     def _start_game(self):
         # Сброс игровой статистики.
@@ -104,10 +124,13 @@ class AlienInvasion:
         self.aliens.empty()
         self.bullets.empty()
         self.rockets.empty()
+        self.meteors.empty()
+
         # Создание нового флота и размещение корабля в центре.
         self._create_fleet()
         self.stats.ships_left = self.settings.ship_limit
         self.ship.center_ship()
+        self.ship.health = self.settings.ship_health_max
         # Сброс игровых настроек.
         self.settings.initialize_dynamic_settings()
         # Указатель мыши скрывается.
@@ -204,6 +227,8 @@ class AlienInvasion:
             bullet.draw_bullet()
         for rocket in self.rockets.sprites():
             rocket.draw_rocket()
+        for meteor in self.meteors.sprites():
+            meteor.draw_meteor()
         self.aliens.draw(self.screen)
         # Вывод информации о счете.
         self.sb.show_score()
@@ -219,16 +244,16 @@ class AlienInvasion:
 
     def _check_keydown_events(self, event):
         #"""Реагирует на нажатие клавиш."""
-        if event.key == pygame.K_RIGHT:
+        if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
             # Переместить корабль вправо.
             self.ship.moving_right = True
-        elif event.key == pygame.K_LEFT:
+        elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
             # Переместить корабль влево.
             self.ship.moving_left = True
-        if event.key == pygame.K_UP:
+        if event.key == pygame.K_UP or event.key == pygame.K_w:
             # Переместить корабль вперед.
             self.ship.moving_up = True
-        elif event.key == pygame.K_DOWN:
+        elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
             # Переместить корабль влево.
             self.ship.moving_down = True
         if event.key == pygame.K_q:
@@ -237,21 +262,23 @@ class AlienInvasion:
         if event.key == pygame.K_p:
             if not self.stats.game_active:
                 self._start_game()
+            if self.stats.game_active:
+                self.stats.ships_left = 1
+                self._ship_hit()
         if event.key == pygame.K_SPACE:
             self._fire_bullet()
         elif event.key == pygame.K_LCTRL:
             self._fire_rockets()
 
-
     def _check_keyup_events(self, event):
         #"""Реагирует на отпускание клавиш."""
-        if event.key == pygame.K_RIGHT:
+        if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
             self.ship.moving_right = False
-        elif event.key == pygame.K_LEFT:
+        elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
             self.ship.moving_left = False
-        if event.key == pygame.K_UP:
+        if event.key == pygame.K_UP or event.key == pygame.K_w:
             self.ship.moving_up = False
-        elif event.key == pygame.K_DOWN:
+        elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
             self.ship.moving_down = False
 
     def _fire_bullet(self):
@@ -294,6 +321,12 @@ class AlienInvasion:
             self.stats.level += 1
             self.sb.prep_level()
 
+    def _check_bullet_meteor_collisions(self):
+        """Обработка коллизий снарядов с метеорами."""
+        # Проверка попаданий в метеор.
+        # При обнаружении попадания удалить снаряд и метеор.
+        pygame.sprite.groupcollide(self.bullets, self.meteors, True, True)
+
 
     def _fire_rockets(self):
         #"""Создание новой ракеты и включение её в группу rockets."""
@@ -304,7 +337,7 @@ class AlienInvasion:
             self.rockets.add(new_rocket)
 
     def _update_rockets(self):
-        #"""Обновляет позиции снарядов и уничтожает стары ракеты."""
+        #"""Обновляет позиции снарядов и уничтожает старые ракеты."""
         #Обновление позиции ракеты.
         #Удаление ракет улетевших за экран
         for rocket in self.rockets.copy():
@@ -335,6 +368,42 @@ class AlienInvasion:
             self.stats.level += 1
             self.sb.prep_level()
 
+    def _check_rockets_meteor_collision(self):
+        """Обработка коллизий ракет с метеорами."""
+        # Проверка попаданий в метеор.
+        # При обнаружении попадания удалить ракеты и метеор.
+        pygame.sprite.groupcollide(self.rockets, self.meteors, True, True)
+
+    def _fire_meteor(self):
+        #"""Создание нового метеорита и включение её в группу meteors."""
+        if len(self.meteors.sprites()) < self.settings.meteor_number_max:
+            select_alien = choice(self.aliens.sprites())
+            new_meteor = Meteor(self, select_alien)
+            self.settings.meteor_timing = 0
+            new_meteor.shoot_sound.play()
+            self.meteors.add(new_meteor)
+
+    def _update_meteor(self):
+        #"""Обновляет позиции метеоритов и уничтожает старые метеориты."""
+        #Обновление позиции рметеоритов.
+        #Удаление метеоритов улетевших за экран
+        for meteor in self.meteors.copy():
+            meteor.update()
+            if meteor.check_edges():
+                self.meteors.remove(meteor)
+        self._check_meteor_ship_collision()
+        self._check_bullet_meteor_collisions()
+        self._check_rockets_meteor_collision()
+
+    def _check_meteor_ship_collision(self):
+        # Проверка попаданий в корабль.
+        # При обнаружении попадания уничтожение корабля.
+        # Проверка коллизий "пришелец — корабль".
+        collide_meteor = pygame.sprite.spritecollideany(self.ship, self.meteors)
+        if collide_meteor:
+            self.meteors.remove(collide_meteor)
+            self._ship_damage()
+
     def _update_aliens(self):
         """Обновляет позиции всех пришельцев во флоте."""
         self._check_fleet_edges()
@@ -362,6 +431,12 @@ class AlienInvasion:
                 self._ship_hit()
                 break
 
+    def _ship_damage(self):
+        self.ship.health -= self.settings.meteor_damage
+        if self.ship.health <= 0:
+            self._ship_hit()
+        self.ship.damage_sound.play()
+
     def _ship_hit(self):
         """Обрабатывает столкновение корабля с пришельцем."""
         # Уменьшение ships_left.
@@ -370,20 +445,21 @@ class AlienInvasion:
             self.ship.destroy_sound.play()
             self.sb.prep_ships()
             self.ship.is_destroy = 1
+            self.ship.health = self.settings.ship_health_max
             self.ship.blitme()
             self._update_screen()
-            sleep(1)
+            # Пауза.
+            sleep(0.5)
             self.ship.rockets = self.settings.rocket_number
             # Очистка списков пришельцев и снарядов.
             self.aliens.empty()
+            self.meteors.empty()
             self.bullets.empty()
             self.rockets.empty()
             # Создание нового флота и размещение корабля в центре.
             self._create_fleet()
             self.ship.is_destroy = 0
             self.ship.center_ship()
-            # Пауза.
-
         else:
             self.stats.game_active = False
             pygame.mouse.set_visible(True)
