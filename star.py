@@ -1,5 +1,6 @@
 import pygame
 from pygame.sprite import Sprite
+import  random
 
 class Star(Sprite):
     #"""Класс, представляющий одну звезду."""

@@ -14,6 +14,7 @@ from game_stats import GameStats
 from button import Button
 from scoreboard import Scoreboard
 from meteor import Meteor
+from bonus import Bonus
 
 
 class AlienInvasion:
@@ -35,10 +36,10 @@ class AlienInvasion:
         # Назначение цвета фона.
         self.bg_color = self.settings.bg_color
         self.ship = Ship(self)
-
         self.bullets = pygame.sprite.Group()
         self.rockets = pygame.sprite.Group()
         self.meteors = pygame.sprite.Group()
+        self.bonuses = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
         self.stars = pygame.sprite.Group()
         self._create_university()
@@ -64,6 +65,7 @@ class AlienInvasion:
                 self._update_aliens()
                 self._update_university()
                 self._update_meteor()
+                self._update_bonus()
                 self._update_meteor_timing()
             self._update_screen()
 
@@ -120,12 +122,14 @@ class AlienInvasion:
         self.sb.prep_score()
         self.sb.prep_level()
         self.sb.prep_ships()
-        # Очистка списков пришельцев и снарядов ракет.
+        self.sb.last_message = "Новая игра!"
+        self.sb.prep_last_message()
+        # Очистка списков пришельцев и снарядов ракет, метеоритов и бонусов.
         self.aliens.empty()
         self.bullets.empty()
         self.rockets.empty()
         self.meteors.empty()
-
+        self.bonuses.empty()
         # Создание нового флота и размещение корабля в центре.
         self._create_fleet()
         self.stats.ships_left = self.settings.ship_limit
@@ -229,6 +233,8 @@ class AlienInvasion:
             rocket.draw_rocket()
         for meteor in self.meteors.sprites():
             meteor.draw_meteor()
+        for bonus in self.bonuses.sprites():
+            bonus.draw_bonus()
         self.aliens.draw(self.screen)
         # Вывод информации о счете.
         self.sb.show_score()
@@ -324,8 +330,17 @@ class AlienInvasion:
     def _check_bullet_meteor_collisions(self):
         """Обработка коллизий снарядов с метеорами."""
         # Проверка попаданий в метеор.
-        # При обнаружении попадания удалить снаряд и метеор.
-        pygame.sprite.groupcollide(self.bullets, self.meteors, True, True)
+        # При обнаружении попадания удалить снаряд
+        collisions = pygame.sprite.groupcollide(self.bullets, self.meteors, True, False)
+        if collisions:
+            for element in collisions.values():
+                for el in element:
+                    collision_rezult = randint(0, (self.settings.bonus_type_number * 2) - 1)
+                    if collision_rezult % 2 == 0:
+                        bonus_type = collision_rezult // 2
+                        new_bonus = Bonus(self, el, bonus_type)
+                        self.bonuses.add(new_bonus)
+                    self.meteors.remove(el)
 
 
     def _fire_rockets(self):
@@ -372,7 +387,17 @@ class AlienInvasion:
         """Обработка коллизий ракет с метеорами."""
         # Проверка попаданий в метеор.
         # При обнаружении попадания удалить ракеты и метеор.
-        pygame.sprite.groupcollide(self.rockets, self.meteors, True, True)
+        collisions = pygame.sprite.groupcollide(self.rockets, self.meteors, False, False)
+        if collisions:
+            for element in collisions.values():
+                for el in element:
+                    collision_rezult = randint(0, (self.settings.bonus_type_number * 2) - 1)
+                    if collision_rezult % 2 == 0:
+                        bonus_type = collision_rezult // 2
+                        new_bonus = Bonus(self, el, bonus_type)
+                        self.bonuses.add(new_bonus)
+                    self.meteors.remove(el)
+
 
     def _fire_meteor(self):
         #"""Создание нового метеорита и включение её в группу meteors."""
@@ -404,6 +429,29 @@ class AlienInvasion:
             self.meteors.remove(collide_meteor)
             self._ship_damage()
 
+    def _update_bonus(self):
+        # """Обновляет позиции бонусов и уничтожает старые бонусы."""
+        # Обновление позиции бонусов.
+        # Удаление бонусов улетевших за экран
+        for bonus in self.bonuses.copy():
+            bonus.update()
+            if bonus.check_edges():
+                self.bonuses.remove(bonus)
+        self._check_bonus_ship_collision()
+
+    def _check_bonus_ship_collision(self):
+        # Проверка попаданий в корабль.
+        # При обнаружении попадания upgrade корабля.
+        # Проверка коллизий "bonus — корабль".
+        collide_bonus = pygame.sprite.spritecollideany(self.ship, self.bonuses)
+        if collide_bonus:
+            self._ship_upgrade(collide_bonus.bonus_type)
+            collide_bonus.upgrade_sound.play()
+            self.bonuses.remove(collide_bonus)
+
+
+
+
     def _update_aliens(self):
         """Обновляет позиции всех пришельцев во флоте."""
         self._check_fleet_edges()
@@ -431,6 +479,33 @@ class AlienInvasion:
                 self._ship_hit()
                 break
 
+    def _ship_upgrade(self, bonus_type):
+        """Обработка типа бонуса для корабля"""
+        #Если 0 - прибавка здоровья
+        if bonus_type == 0:
+            self.ship.health = self.settings.ship_health_max
+            self.sb.last_message = f"Теперь количество здоровья {self.ship.health}!"
+        #Если 1 - прибавка количества пуль
+        if bonus_type == 1:
+            self.settings.bullets_allowed += 2
+            self.sb.last_message = f"Теперь количество пуль {self.settings.bullets_allowed}!"
+        #Если 2 - прибавка 5 ракет
+        if bonus_type == 2:
+            self.ship.rockets += 5
+            self.sb.last_message = f"Теперь ракет стало {self.ship.rockets}!"
+        #Если 3 - замедление пришельцев
+        if bonus_type == 3:
+            if self.settings.alien_speed >= 0.3:
+                self.settings.alien_speed -= 0.2
+            self.sb.last_message = f"Скорость пришельцев замедлилась до {int(self.settings.alien_speed * 10)}!"
+        #Если 4 - ещё один запасной карабль
+        if bonus_type == 4:
+            if self.stats.ships_left < self.settings.ship_limit:
+                self.stats.ships_left += 1
+            self.sb.last_message = f"Теперь количество кораблей {self.stats.ships_left}!"
+            self.sb.prep_ships()
+        self.sb.prep_last_message()
+
     def _ship_damage(self):
         self.ship.health -= self.settings.meteor_damage
         if self.ship.health <= 0:
@@ -446,6 +521,7 @@ class AlienInvasion:
             self.sb.prep_ships()
             self.ship.is_destroy = 1
             self.ship.health = self.settings.ship_health_max
+            self.settings.bullets_allowed = 3
             self.ship.blitme()
             self._update_screen()
             # Пауза.

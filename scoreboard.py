@@ -15,11 +15,15 @@ class Scoreboard():
         # Настройки шрифта для вывода счета.
         self.text_color = (30, 30, 30)
         self.font = pygame.font.SysFont(None, 48)
+        # Текст последнего сообщения
+        self.last_message = "Приветствуем тебя пилот!"
         # Подготовка исходного изображения.
         self.prep_score()
         self.prep_high_score()
         self.prep_level()
         self.prep_ships()
+        self.prep_last_message()
+
 
     def prep_score(self):
         """Преобразует текущий счет в графическое изображение."""
@@ -59,11 +63,20 @@ class Scoreboard():
             ship.rect.y = 10
             self.ships.add(ship)
 
+    def prep_last_message(self):
+        """Преобразует последнее сообщение в графическое изображение."""
+        self.message_image = self.font.render(self.last_message, True, self.text_color, self.settings.bg_color)
+        # Вывод счета в правой верхней части экрана.
+        self.message_rect = self.message_image.get_rect()
+        self.message_rect.top = self.high_score_rect.bottom + 20
+        self.message_rect.centerx = self.screen_rect.centerx
+
     def show_score(self):
         """Выводит счет на экран."""
         self.screen.blit(self.score_image, self.score_rect)
         self.screen.blit(self.high_score_image, self.high_score_rect)
         self.screen.blit(self.level_image, self.level_rect)
+        self.screen.blit(self.message_image, self.message_rect)
         self.ships.draw(self.screen)
 
     def check_high_score(self):

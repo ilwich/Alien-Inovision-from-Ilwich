@@ -13,7 +13,7 @@ class Settings():
         self.bullet_width = 3
         self.bullet_height = 15
         self.bullet_color = (60, 60, 60)
-        self.bullets_allowed = 10
+        self.bullets_allowed = 3
         self.rocket_number = 5
         self.fleet_drop_speed = 10
         # fleet_direction = 1 обозначает движение вправо; а -1 - влево.
@@ -36,6 +36,8 @@ class Settings():
         # Уровень здоровья корабля
         self.ship_health_max = 100
         self.initialize_dynamic_settings()
+        # Количество типов бонусов
+        self.bonus_type_number = 5
 
     def initialize_dynamic_settings(self):
         """Инициализирует настройки, изменяющиеся в ходе игры."""
