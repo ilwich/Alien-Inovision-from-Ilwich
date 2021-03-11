@@ -7,6 +7,7 @@ import pygame
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
+from boss import Boss
 from star import Star
 from rockets import Rocket
 from settings import Settings
@@ -41,6 +42,7 @@ class AlienInvasion:
         self.meteors = pygame.sprite.Group()
         self.bonuses = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
+        self.bosses = pygame.sprite.Group()
         self.stars = pygame.sprite.Group()
         self._create_university()
         self._create_fleet()
@@ -53,7 +55,7 @@ class AlienInvasion:
         self._create_menu()
 
     def run_game(self):
-        # """Запуск основного цикла игры."""
+        """Запуск основного цикла игры."""
         while True:
             self._check_events()
             if self.stats.game_active:
@@ -62,7 +64,10 @@ class AlienInvasion:
                 self.rockets.update()
                 self._update_bullets()
                 self._update_rockets()
-                self._update_aliens()
+                if not self.stats.boss_level:
+                    self._update_aliens()
+                else:
+                    self._update_boss()
                 self._update_university()
                 self._update_meteor()
                 self._update_bonus()
@@ -97,7 +102,7 @@ class AlienInvasion:
         button_clicked = self.play_button.rect.collidepoint(mouse_pos)
         left_button, center_button, right_button = mouse_button
         if button_clicked and not self.stats.game_active:
-            #инициализация скорости
+            # инициализация скорости
             self.settings.initialize_dynamic_settings()
             self._start_game()
         if not self.stats.game_active:
@@ -133,6 +138,8 @@ class AlienInvasion:
         # Создание нового флота и размещение корабля в центре.
         self._create_fleet()
         self.stats.ships_left = self.settings.ship_limit
+        self.settings.save_normal_ship_setting()
+        self.settings.save_normal_level_setting()
         self.ship.center_ship()
         self.ship.health = self.settings.ship_health_max
         # Сброс игровых настроек.
@@ -148,7 +155,7 @@ class AlienInvasion:
             self.hard_buttom.rect.y = self.normal_buttom.rect.y + self.play_button.rect.height * 2
 
     def _create_fleet(self):
-        #"""Создание флота вторжения."""
+        """Создание флота вторжения."""
         # Создание пришельца.
         # Создание пришельца и вычисление количества пришельцев в ряду
         # Интервал между соседними пришельцами равен ширине пришельца.
@@ -167,8 +174,9 @@ class AlienInvasion:
                 # Создание пришельца и размещение его в ряду.
                 self._create_alien(alien_number, row_number)
 
+
     def _create_alien(self, alien_number, row_number):
-        #"""Создание пришельца и размещение его в ряду."""
+        """Создание пришельца и размещение его в ряду."""
         alien = Alien(self)
         alien_width, alien_height = alien.rect.size
         alien.x = alien_width + 2 * alien_width * alien_number
@@ -207,7 +215,7 @@ class AlienInvasion:
 
 
     def _create_star(self, star_number, row_number):
-        #"""Создание звезды и размещение её в ряду."""
+        """Создание звезды и размещение её в ряду."""
         star = Star(self)
         star_width, star_height = star.rect.size
         star.x = randint(star_width, star_width * 6) + 6 * star_width * star_number
@@ -215,6 +223,14 @@ class AlienInvasion:
         star.rect.x = star.x
         star.rect.y = star.y
         self.stars.add(star)
+
+    def _create_boss(self):
+        """Создание боса и размещение его в центре."""
+        new_boss = Boss(self)
+
+        self.bosses.add(new_boss)
+
+
 
     def _check_star_edges(self):
         """Реагирует на достижение звезды края экрана."""
@@ -235,7 +251,10 @@ class AlienInvasion:
             meteor.draw_meteor()
         for bonus in self.bonuses.sprites():
             bonus.draw_bonus()
-        self.aliens.draw(self.screen)
+        if not self.stats.boss_level:
+            self.aliens.draw(self.screen)
+        else:
+            self.bosses.draw(self.screen)
         # Вывод информации о счете.
         self.sb.show_score()
         # Кнопка Play отображается в том случае, если игра неактивна.
@@ -249,7 +268,7 @@ class AlienInvasion:
         pygame.display.flip()
 
     def _check_keydown_events(self, event):
-        #"""Реагирует на нажатие клавиш."""
+        """Реагирует на нажатие клавиш."""
         if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
             # Переместить корабль вправо.
             self.ship.moving_right = True
@@ -277,7 +296,7 @@ class AlienInvasion:
             self._fire_rockets()
 
     def _check_keyup_events(self, event):
-        #"""Реагирует на отпускание клавиш."""
+        """Реагирует на отпускание клавиш."""
         if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
             self.ship.moving_right = False
         elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
@@ -288,20 +307,23 @@ class AlienInvasion:
             self.ship.moving_down = False
 
     def _fire_bullet(self):
-        #"""Создание нового снаряда и включение его в группу bullets."""
+        """Создание нового снаряда и включение его в группу bullets."""
         if len(self.bullets) < self.settings.bullets_allowed:
             new_bullet = Bullet(self)
             new_bullet.shoot_sound.play()
             self.bullets.add(new_bullet)
 
     def _update_bullets(self):
-        #"""Обновляет позиции снарядов и уничтожает старые снаряды."""
+        """Обновляет позиции снарядов и уничтожает старые снаряды."""
         # Обновление позиций снарядов.
         # Удаление снарядов, вышедших за край экрана.
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
-        self._check_bullet_alien_collisions()
+        if not self.stats.boss_level:
+            self._check_bullet_alien_collisions()
+        else:
+            self._check_bullet_boss_collisions()
 
 
     def _check_bullet_alien_collisions(self):
@@ -320,12 +342,7 @@ class AlienInvasion:
             self.sb.prep_score()
             self.sb.check_high_score()
         if not self.aliens:
-            self.bullets.empty()
-            self.settings.increase_speed()
-            self._create_fleet()
-            # Увеличение уровня.
-            self.stats.level += 1
-            self.sb.prep_level()
+            self._new_level()
 
     def _check_bullet_meteor_collisions(self):
         """Обработка коллизий снарядов с метеорами."""
@@ -342,9 +359,26 @@ class AlienInvasion:
                         self.bonuses.add(new_bonus)
                     self.meteors.remove(el)
 
+    def _check_bullet_boss_collisions(self):
+        """Обработка коллизий снарядов с боссом."""
+        # Проверка попаданий в боса.
+        # При обнаружении попадания удалить снаряд и боса.
+        collisions = pygame.sprite.groupcollide(self.bullets, self.bosses, True, False)
+        # Удаление снарядов и пришельцев, участвующих в коллизиях.
+        count_collisions = 0
+        if collisions:
+            for element in collisions.values():
+                count_collisions += len(element)
+                for el in element:
+                    el.is_explois = 0
+            self.stats.score += self.settings.alien_points * count_collisions
+            self.sb.prep_score()
+            self.sb.check_high_score()
+        if not self.bosses:
+            self._new_level()
 
     def _fire_rockets(self):
-        #"""Создание новой ракеты и включение её в группу rockets."""
+        """Создание новой ракеты и включение её в группу rockets."""
         if len(self.rockets) < self.settings.bullets_allowed and self.ship.rockets > 0:
             new_rocket = Rocket(self)
             self.ship.rockets -= 1
@@ -352,13 +386,16 @@ class AlienInvasion:
             self.rockets.add(new_rocket)
 
     def _update_rockets(self):
-        #"""Обновляет позиции снарядов и уничтожает старые ракеты."""
-        #Обновление позиции ракеты.
-        #Удаление ракет улетевших за экран
+        """Обновляет позиции снарядов и уничтожает старые ракеты."""
+        # Обновление позиции ракеты.
+        # Удаление ракет улетевших за экран
         for rocket in self.rockets.copy():
             if rocket.rect.bottom <= 0:
                 self.rockets.remove(rocket)
-        self._check_rockets_alien_collision()
+        if not self.stats.boss_level:
+            self._check_rockets_alien_collision()
+        else:
+            self._check_rockets_boss_collision()
 
 
     def _check_rockets_alien_collision(self):
@@ -375,13 +412,45 @@ class AlienInvasion:
             self.sb.prep_score()
             self.sb.check_high_score()
         if not self.aliens:
-        # Уничтожение существующих снарядов и создание нового флота.
-            self.bullets.empty()
+            self._new_level()
+
+    def _check_rockets_boss_collision(self):
+        # Проверка попаданий в боса.
+        # При обнаружении попадания удалить пришельца.
+        collisions = pygame.sprite.groupcollide(self.rockets, self.bosses, False, False)
+        count_collisions = 0
+        if collisions:
+            for element in collisions.values():
+                count_collisions += len(element)
+                for el in element:
+                    el.is_explois = 1
+            self.stats.score += self.settings.alien_points * count_collisions
+            self.sb.prep_score()
+            self.sb.check_high_score()
+        if not self.bosses:
+            self._new_level()
+
+    def _new_level(self):
+        """Создание нового уровня"""
+        # Уничтожение существующих снарядов
+        self.bullets.empty()
+        # Увеличение уровня.
+        self.stats.level += 1
+        self.sb.prep_level()
+        # Если уровень кратный трем запускаем уровень с босом
+        if self.stats.level == 2:
+            self._create_boss()
+            self.stats.boss_level = True
+        else:
+            # изменение параметров для нового уровня и сохранение их для восстановления после утраты бонусов
+            self.settings.load_normal_level_setting()
             self.settings.increase_speed()
+            self.settings.save_normal_level_setting()
+            self.stats.boss_level = False
+            # создание нового флота.
             self._create_fleet()
-            # Увеличение уровня.
-            self.stats.level += 1
-            self.sb.prep_level()
+
+
 
     def _check_rockets_meteor_collision(self):
         """Обработка коллизий ракет с метеорами."""
@@ -400,18 +469,19 @@ class AlienInvasion:
 
 
     def _fire_meteor(self):
-        #"""Создание нового метеорита и включение её в группу meteors."""
-        if len(self.meteors.sprites()) < self.settings.meteor_number_max:
-            select_alien = choice(self.aliens.sprites())
-            new_meteor = Meteor(self, select_alien)
-            self.settings.meteor_timing = 0
-            new_meteor.shoot_sound.play()
-            self.meteors.add(new_meteor)
+        """Создание нового метеорита и включение её в группу meteors."""
+        if not self.stats.boss_level:
+            if len(self.meteors.sprites()) < self.settings.meteor_number_max:
+                select_alien = choice(self.aliens.sprites())
+                new_meteor = Meteor(self, select_alien)
+                self.settings.meteor_timing = 0
+                new_meteor.shoot_sound.play()
+                self.meteors.add(new_meteor)
 
     def _update_meteor(self):
-        #"""Обновляет позиции метеоритов и уничтожает старые метеориты."""
-        #Обновление позиции рметеоритов.
-        #Удаление метеоритов улетевших за экран
+        """Обновляет позиции метеоритов и уничтожает старые метеориты."""
+        # Обновление позиции рметеоритов.
+        # Удаление метеоритов улетевших за экран
         for meteor in self.meteors.copy():
             meteor.update()
             if meteor.check_edges():
@@ -450,7 +520,33 @@ class AlienInvasion:
             self.bonuses.remove(collide_bonus)
 
 
+    def _check_bosses_edges(self):
+        """Реагирует на достижение босом края экрана."""
+        for boss in self.bosses.sprites():
+            if boss.check_edges():
+                self._change_boss_direction()
+                break
 
+    def _change_boss_direction(self):
+        """Опускает весь босс и меняет направление боса."""
+        for boss in self.bosses.sprites():
+            boss.rect.y += self.settings.fleet_drop_speed
+        self.settings.boss_direction_x *= -1
+
+    def _update_boss(self):
+        """Обновляет позиции босса"""
+        for boss in self.bosses.sprites():
+            boss.x_aim = self.ship.rect.x
+            boss.y_aim = self.ship.rect.y
+        self.bosses.update()
+        self._check_bosses_edges()
+        self._check_boss_explois()
+
+    def _check_boss_explois(self):
+        for boss in self.bosses.sprites():
+            if boss.is_explois >=30:
+                boss.explois_sound.play()
+                boss.kill()
 
     def _update_aliens(self):
         """Обновляет позиции всех пришельцев во флоте."""
@@ -481,29 +577,33 @@ class AlienInvasion:
 
     def _ship_upgrade(self, bonus_type):
         """Обработка типа бонуса для корабля"""
-        #Если 0 - прибавка здоровья
+        # Если 0 - прибавка здоровья
         if bonus_type == 0:
             self.ship.health = self.settings.ship_health_max
             self.sb.last_message = f"Теперь количество здоровья {self.ship.health}!"
-        #Если 1 - прибавка количества пуль
+        # Если 1 - прибавка количества пуль
         if bonus_type == 1:
             self.settings.bullets_allowed += 2
             self.sb.last_message = f"Теперь количество пуль {self.settings.bullets_allowed}!"
-        #Если 2 - прибавка 5 ракет
+        # Если 2 - прибавка 5 ракет
         if bonus_type == 2:
             self.ship.rockets += 5
             self.sb.last_message = f"Теперь ракет стало {self.ship.rockets}!"
-        #Если 3 - замедление пришельцев
+        # Если 3 - замедление пришельцев
         if bonus_type == 3:
             if self.settings.alien_speed >= 0.3:
                 self.settings.alien_speed -= 0.2
             self.sb.last_message = f"Скорость пришельцев замедлилась до {int(self.settings.alien_speed * 10)}!"
-        #Если 4 - ещё один запасной карабль
+        # Если 4 - ещё один запасной карабль
         if bonus_type == 4:
             if self.stats.ships_left < self.settings.ship_limit:
                 self.stats.ships_left += 1
             self.sb.last_message = f"Теперь количество кораблей {self.stats.ships_left}!"
             self.sb.prep_ships()
+        # Если 5 - увеличение мощности пуль
+        if bonus_type == 5:
+            self.settings.bullet_height += 5
+            self.sb.last_message = f"Теперь мощность лазера {self.settings.bullet_height}!"
         self.sb.prep_last_message()
 
     def _ship_damage(self):
@@ -514,14 +614,15 @@ class AlienInvasion:
 
     def _ship_hit(self):
         """Обрабатывает столкновение корабля с пришельцем."""
+        self.settings.load_normal_ship_setting()
         # Уменьшение ships_left.
         if self.stats.ships_left > 1:
             self.stats.ships_left -= 1
             self.ship.destroy_sound.play()
             self.sb.prep_ships()
             self.ship.is_destroy = 1
+            # Потеря все бонусов корабля после гибели
             self.ship.health = self.settings.ship_health_max
-            self.settings.bullets_allowed = 3
             self.ship.blitme()
             self._update_screen()
             # Пауза.
@@ -536,6 +637,7 @@ class AlienInvasion:
             self._create_fleet()
             self.ship.is_destroy = 0
             self.ship.center_ship()
+            self.settings.save_normal_ship_setting()
         else:
             self.stats.game_active = False
             pygame.mouse.set_visible(True)

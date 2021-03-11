@@ -10,7 +10,7 @@ class Settings():
         self.bg_color = (143, 85, 201)
         self.ship_limit = 5
         # Параметры снаряда
-        self.bullet_width = 3
+        self.bullet_width = 900
         self.bullet_height = 15
         self.bullet_color = (60, 60, 60)
         self.bullets_allowed = 3
@@ -19,6 +19,9 @@ class Settings():
         # fleet_direction = 1 обозначает движение вправо; а -1 - влево.
         self.fleet_direction = 1
         self.university_drop_speed = 0.5
+        # Направление движения босса 1- вправо и вниз
+        self.boss_direction_x = 1
+        self.boss_direction_y = 1
         # Темп ускорения игры
         self.speedup_scale = 1.1
         # Темп роста стоимости пришельцев
@@ -37,7 +40,7 @@ class Settings():
         self.ship_health_max = 100
         self.initialize_dynamic_settings()
         # Количество типов бонусов
-        self.bonus_type_number = 5
+        self.bonus_type_number = 6
 
     def initialize_dynamic_settings(self):
         """Инициализирует настройки, изменяющиеся в ходе игры."""
@@ -58,3 +61,25 @@ class Settings():
         self.rocket_speed *= self.speedup_scale
         self.alien_speed *= self.speedup_scale
         self.alien_points = int(self.alien_points * self.score_scale)
+
+    def save_normal_level_setting(self):
+        """Сохранение настроек уровня до бонусов"""
+        self.normal_alien_speed = self.alien_speed
+        self.normal_alien_points = self.alien_points
+
+    def load_normal_level_setting(self):
+        """Восстановление настроек уровня после прохождения"""
+        self.alien_points = self.normal_alien_points
+        self.alien_speed = self.normal_alien_speed
+
+    def save_normal_ship_setting(self):
+        """Сохранение настроек для нового корабля до бонусов"""
+        self.normal_bullet_heigth = self.bullet_height
+        self.normal_bullets_allowed = self.bullets_allowed
+        self.normal_rocket_number = self.rocket_number
+
+    def load_normal_ship_setting(self):
+        """Восстановление настроек для корабля после гибели"""
+        self.rocket_number = self.normal_rocket_number
+        self.bullets_allowed = self.normal_bullets_allowed
+        self.bullet_heigth = self.normal_bullet_heigth

@@ -7,6 +7,8 @@ class GameStats():
         self.reset_stats()
         # Игра запускается в неактивном состоянии.
         self.game_active = False
+        # Уровень с боссом
+        self.boss_level = False
         # Рекорд не должен сбрасываться.
         self._high_score_init()
 

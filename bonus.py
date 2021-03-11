@@ -43,8 +43,6 @@ class Bonus(Sprite):
         self.screen.blit(self.image, self.rect)
 
 
-
-
     def check_edges(self):
         """Возвращает True, если бонус находится у края экрана."""
         screen_rect = self.screen.get_rect()
