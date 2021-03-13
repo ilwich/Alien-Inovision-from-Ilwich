@@ -9,8 +9,9 @@ class Settings():
         self.screen_height = 750
         self.bg_color = (143, 85, 201)
         self.ship_limit = 5
+        self.exlois_timer = 30
         # Параметры снаряда
-        self.bullet_width = 900
+        self.bullet_width = 3
         self.bullet_height = 15
         self.bullet_color = (60, 60, 60)
         self.bullets_allowed = 3
@@ -22,6 +23,14 @@ class Settings():
         # Направление движения босса 1- вправо и вниз
         self.boss_direction_x = 1
         self.boss_direction_y = 1
+        # Уровень жизни пушки
+        self.boss_turrel_health_max = 100
+        self.boss_turrel_health_width = 100
+        self.boss_turrel_health_height = 15
+        # Повреждения пушки от попадания пули
+        self.boss_turrel_bullet_damge = 10
+        # Параметры отображения здоровья пушек босса
+        self.boss_turrel_health_color = (255, 0, 0)
         # Темп ускорения игры
         self.speedup_scale = 1.1
         # Темп роста стоимости пришельцев
@@ -30,12 +39,16 @@ class Settings():
         self.record_filename = 'records.dat'
         # Параметры метеоритов
         self.meteor_number_max = 5
+        self.bossbullet_number_max = 8
         # Сколько шагов на 100 пикселей
         self.meteor_speed = 200
+        self.bossbullet_speed = 50
         # Частота выстрела метеоритами
         self.meteor_clock = 500
+        self.bossbullet_clock = 250
         # Уровень повреждения от метеорита
         self.meteor_damage = 12
+        self.bossbullet_damage = 24
         # Уровень здоровья корабля
         self.ship_health_max = 100
         self.initialize_dynamic_settings()
@@ -53,11 +66,13 @@ class Settings():
         # Подсчет очков
         self.alien_points = 100
         self.meteor_timing = 0
+        self.bossbullet_timing = 0
 
     def increase_speed(self):
         """Увеличивает настройки скорости и стоимость пришельцев."""
         self.ship_speed *= self.speedup_scale
         self.bullet_speed *= self.speedup_scale
+        self.bossbullet_speed *= self.speedup_scale
         self.rocket_speed *= self.speedup_scale
         self.alien_speed *= self.speedup_scale
         self.alien_points = int(self.alien_points * self.score_scale)

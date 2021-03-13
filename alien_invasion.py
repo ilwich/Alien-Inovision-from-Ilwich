@@ -16,6 +16,8 @@ from button import Button
 from scoreboard import Scoreboard
 from meteor import Meteor
 from bonus import Bonus
+from boss_bullet import Bossbullet
+from bossstation import Bossstation
 
 
 class AlienInvasion:
@@ -42,7 +44,9 @@ class AlienInvasion:
         self.meteors = pygame.sprite.Group()
         self.bonuses = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
+        self.bossstation = Bossstation(self)
         self.bosses = pygame.sprite.Group()
+        self.bossbullets = pygame.sprite.Group()
         self.stars = pygame.sprite.Group()
         self._create_university()
         self._create_fleet()
@@ -68,6 +72,8 @@ class AlienInvasion:
                     self._update_aliens()
                 else:
                     self._update_boss()
+                    self._update_bossbullet()
+                    self._update_bossbullet_timing()
                 self._update_university()
                 self._update_meteor()
                 self._update_bonus()
@@ -80,6 +86,12 @@ class AlienInvasion:
         self.settings.meteor_timing += 1
         if self.settings.meteor_timing >= self.settings.meteor_clock:
             self._fire_meteor()
+
+    def _update_bossbullet_timing(self):
+        """Прибавление счётчика выстрелов босса"""
+        self.settings.bossbullet_timing += 1
+        if self.settings.bossbullet_timing >= self.settings.bossbullet_clock:
+            self._fire_bossbullet()
 
 
     def _check_events(self):
@@ -132,6 +144,7 @@ class AlienInvasion:
         # Очистка списков пришельцев и снарядов ракет, метеоритов и бонусов.
         self.aliens.empty()
         self.bullets.empty()
+        self.bossbullets.empty()
         self.rockets.empty()
         self.meteors.empty()
         self.bonuses.empty()
@@ -198,6 +211,7 @@ class AlienInvasion:
             alien.rect.y += self.settings.fleet_drop_speed
         self.settings.fleet_direction *= -1
 
+
     def _create_university(self):
         star = Star(self)
         star_width, star_height = star.rect.size
@@ -226,10 +240,12 @@ class AlienInvasion:
 
     def _create_boss(self):
         """Создание боса и размещение его в центре."""
-        new_boss = Boss(self)
-
-        self.bosses.add(new_boss)
-
+        for point in self.bossstation.turrel_list:
+            new_boss = Boss(self)
+            new_boss.x = (point[0] + self.bossstation.rect.x - new_boss.rect.width / 2)
+            new_boss.y = (point[1] + self.bossstation.rect.y - new_boss.rect.height /2)
+            new_boss.index_in_station = self.bossstation.turrel_list.index(point)
+            self.bosses.add(new_boss)
 
 
     def _check_star_edges(self):
@@ -242,19 +258,25 @@ class AlienInvasion:
         # При каждом проходе цикла перерисовывается экран.
         self.screen.fill(self.bg_color)
         self.stars.draw(self.screen)
-        self.ship.blitme()
+
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
         for rocket in self.rockets.sprites():
             rocket.draw_rocket()
-        for meteor in self.meteors.sprites():
-            meteor.draw_meteor()
         for bonus in self.bonuses.sprites():
             bonus.draw_bonus()
         if not self.stats.boss_level:
             self.aliens.draw(self.screen)
+            for meteor in self.meteors.sprites():
+                meteor.draw_meteor()
         else:
-            self.bosses.draw(self.screen)
+            self.bossstation.blitme()
+            for bossbullet in self.bossbullets.sprites():
+                bossbullet.draw_bossbullet()
+            for boss in self.bosses.sprites():
+                boss.draw_boss()
+
+        self.ship.blitme()
         # Вывод информации о счете.
         self.sb.show_score()
         # Кнопка Play отображается в том случае, если игра неактивна.
@@ -370,7 +392,7 @@ class AlienInvasion:
             for element in collisions.values():
                 count_collisions += len(element)
                 for el in element:
-                    el.is_explois = 0
+                    el.is_explois = 1
             self.stats.score += self.settings.alien_points * count_collisions
             self.sb.prep_score()
             self.sb.check_high_score()
@@ -438,7 +460,7 @@ class AlienInvasion:
         self.stats.level += 1
         self.sb.prep_level()
         # Если уровень кратный трем запускаем уровень с босом
-        if self.stats.level == 2:
+        if self.stats.level % 2 == 0:
             self._create_boss()
             self.stats.boss_level = True
         else:
@@ -499,6 +521,35 @@ class AlienInvasion:
             self.meteors.remove(collide_meteor)
             self._ship_damage()
 
+    def _fire_bossbullet(self):
+        """Создание нового снаряда и включение её в группу bossbullets."""
+        if self.stats.boss_level:
+            if len(self.bossbullets.sprites()) < self.settings.bossbullet_number_max:
+                select_boss = choice(self.bosses.sprites())
+                new_bossbullet = Bossbullet(self, select_boss)
+                self.settings.bossbullet_timing = 0
+                new_bossbullet.shoot_sound.play()
+                self.bossbullets.add(new_bossbullet)
+
+    def _update_bossbullet(self):
+        """Обновляет позиции снарядов и уничтожает старые снаряды."""
+        # Обновление позиции снарядов.
+        # Удаление снарядов улетевших за экран
+        for bossbullet in self.bossbullets.copy():
+            bossbullet.update()
+            if bossbullet.check_edges():
+                self.bossbullets.remove(bossbullet)
+        self._check_bossbullet_ship_collision()
+
+    def _check_bossbullet_ship_collision(self):
+        # Проверка попаданий в корабль.
+        # При обнаружении попадания уничтожение корабля.
+        # Проверка коллизий "снаряд — корабль".
+        collide_bossbullets = pygame.sprite.spritecollideany(self.ship, self.bossbullets)
+        if collide_bossbullets:
+            self.bossbullets.remove(collide_bossbullets)
+            self._ship_damage()
+
     def _update_bonus(self):
         # """Обновляет позиции бонусов и уничтожает старые бонусы."""
         # Обновление позиции бонусов.
@@ -530,23 +581,37 @@ class AlienInvasion:
     def _change_boss_direction(self):
         """Опускает весь босс и меняет направление боса."""
         for boss in self.bosses.sprites():
-            boss.rect.y += self.settings.fleet_drop_speed
+            boss.rect.y += self.settings.fleet_drop_speed * self.settings.boss_direction_y
         self.settings.boss_direction_x *= -1
 
     def _update_boss(self):
         """Обновляет позиции босса"""
+        self.bossstation.update()
         for boss in self.bosses.sprites():
             boss.x_aim = self.ship.rect.x
             boss.y_aim = self.ship.rect.y
-        self.bosses.update()
+            boss.x = (self.bossstation.turrel_list[boss.index_in_station][0] + self.bossstation.rect.x - boss.rect.width / 2)
+            boss.y = (self.bossstation.turrel_list[boss.index_in_station][1] + self.bossstation.rect.y - boss.rect.height / 2)
+            boss.update()
         self._check_bosses_edges()
+        self._check_boss_bottom()
         self._check_boss_explois()
 
     def _check_boss_explois(self):
         for boss in self.bosses.sprites():
-            if boss.is_explois >=30:
+            if boss.is_explois >= self.settings.exlois_timer:
                 boss.explois_sound.play()
                 boss.kill()
+
+    def _check_boss_bottom(self):
+        """Проверяет, добрались ли босс до нижнего или верхнего края экрана."""
+        screen_rect = self.screen.get_rect()
+        for boss in self.bosses.sprites():
+            if boss.rect.bottom >= screen_rect.bottom or boss.rect.top <= 40:
+                # Происходит изменение направления вверх.
+                self.settings.boss_direction_y *= -1
+                break
+
 
     def _update_aliens(self):
         """Обновляет позиции всех пришельцев во флоте."""
@@ -561,7 +626,7 @@ class AlienInvasion:
 
     def _check_aliens_explois(self):
         for alien in self.aliens.sprites():
-            if alien.is_explois >=30:
+            if alien.is_explois >= self.settings.exlois_timer:
                 alien.explois_sound.play()
                 alien.kill()
 
