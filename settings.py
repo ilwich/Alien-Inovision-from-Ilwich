@@ -25,8 +25,15 @@ class Settings():
         self.boss_direction_y = 1
         # Уровень жизни пушки
         self.boss_turrel_health_max = 100
-        self.boss_turrel_health_width = 100
-        self.boss_turrel_health_height = 15
+        self.boss_turrel_health_width = 50
+        self.boss_turrel_health_height = 5
+        self.boss_turrel_health_boader_thick = 2
+        # Точки размещения пушек
+        self.turrel_list = [(210, 300), (390, 300),
+                            (50, 310), (550, 310),
+                            (205, 205), (385, 205),
+                            (250, 60), (350, 60), (75, 222),
+                            (535, 220), (105, 160), (495, 160),]
         # Повреждения пушки от попадания пули
         self.boss_turrel_bullet_damge = 10
         # Параметры отображения здоровья пушек босса
@@ -75,6 +82,7 @@ class Settings():
         self.bossbullet_speed *= self.speedup_scale
         self.rocket_speed *= self.speedup_scale
         self.alien_speed *= self.speedup_scale
+        self.bossbullet_clock = int(self.bossbullet_clock / self.speedup_scale)
         self.alien_points = int(self.alien_points * self.score_scale)
 
     def save_normal_level_setting(self):

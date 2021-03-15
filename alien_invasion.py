@@ -240,12 +240,15 @@ class AlienInvasion:
 
     def _create_boss(self):
         """Создание боса и размещение его в центре."""
+        count = 1
         for point in self.bossstation.turrel_list:
-            new_boss = Boss(self)
-            new_boss.x = (point[0] + self.bossstation.rect.x - new_boss.rect.width / 2)
-            new_boss.y = (point[1] + self.bossstation.rect.y - new_boss.rect.height /2)
-            new_boss.index_in_station = self.bossstation.turrel_list.index(point)
-            self.bosses.add(new_boss)
+            if count <= self.stats.level:
+                new_boss = Boss(self)
+                new_boss.x = (point[0] + self.bossstation.rect.x - new_boss.rect.width / 2)
+                new_boss.y = (point[1] + self.bossstation.rect.y - new_boss.rect.height /2)
+                new_boss.index_in_station = self.bossstation.turrel_list.index(point)
+                self.bosses.add(new_boss)
+            count += 1
 
 
     def _check_star_edges(self):
@@ -471,6 +474,8 @@ class AlienInvasion:
             self.stats.boss_level = False
             # создание нового флота.
             self._create_fleet()
+        if self.stats.boss_level:
+            self.bossstation.kill()
 
 
 

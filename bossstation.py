@@ -23,7 +23,7 @@ class Bossstation(Sprite):
         self.x = float(self.rect.x)
         self.y = float(self.rect.y)
         # Точки размещения башен
-        self.turrel_list = [(210, 300), (390, 300), ]
+        self.turrel_list = self.settings.turrel_list
 
     def check_edges(self):
         """Возвращает True, если босс находится у краев экрана."""
